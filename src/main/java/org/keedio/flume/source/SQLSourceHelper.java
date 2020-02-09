@@ -86,8 +86,6 @@ public class SQLSourceHelper {
      */
     public SQLSourceHelper(Context context, String sourceName) {
 
-        LOG.error("context={}", context);
-
         this.context = context;
 
         statusFilePath = context.getString("status.file.path", DEFAULT_STATUS_DIRECTORY);
