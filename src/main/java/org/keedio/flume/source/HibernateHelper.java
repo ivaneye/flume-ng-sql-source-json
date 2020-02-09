@@ -183,6 +183,11 @@ public class HibernateHelper {
 
 		if (!rowsList.isEmpty()){
 			if (sqlSourceHelper.isCustomQuerySet()){
+				LOG.error("orderBy = {}",sqlSourceHelper.getOrderBy());
+				LOG.error("rowsList.size = {}",rowsList.size());
+				LOG.error("==================================");
+				LOG.error("rowsList = {}",rowsList);
+				LOG.error("==================================");
 				sqlSourceHelper.setCurrentIndex(rowsList.get(rowsList.size()-1).get(sqlSourceHelper.getOrderBy()).toString());
 			}
 			else
