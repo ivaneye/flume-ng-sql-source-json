@@ -85,10 +85,10 @@ public class SQLSource extends AbstractSource implements Configurable, PollableS
 
         try {
             sqlSourceCounter.startProcess();
-            LOG.info("start process!");
+            System.out.println("start process!");
 //            List<List<Object>> result = hibernateHelper.executeQue
             List<Map<String, Object>> result = hibernateHelper.executeQueryForJson();
-            LOG.info("query size = [{}]", result.size());
+            System.out.println("query size = " + result.size());
             if (!result.isEmpty()) {
                 sqlSourceHelper.writeAllRows(result, printWriter);
                 printWriter.flush();
@@ -103,7 +103,7 @@ public class SQLSource extends AbstractSource implements Configurable, PollableS
             if (result.size() < sqlSourceHelper.getMaxRows()) {
                 Thread.sleep(sqlSourceHelper.getRunQueryDelay());
             }
-            LOG.info("Finish process!");
+            System.out.println("Finish process!");
             return Status.READY;
 
         } catch (InterruptedException e) {
