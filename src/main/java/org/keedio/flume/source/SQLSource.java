@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *  
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -40,74 +40,75 @@ import java.util.Map;
 
 /**
  * A Source to read data from a SQL database. This source ask for new data in a table each configured time.<p>
- * 
+ *
  * @author <a href="mailto:mvalle@keedio.com">Marcelo Valle</a>
  */
 public class SQLSource extends AbstractSource implements Configurable, PollableSource {
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(SQLSource.class);
     protected SQLSourceHelper sqlSourceHelper;
     private SqlSourceCounter sqlSourceCounter;
-//    private CSVWriter csvWriter;
-    private PrintWriter printWriter ;
+    //    private CSVWriter csvWriter;
+    private PrintWriter printWriter;
     private HibernateHelper hibernateHelper;
-       
+
     /**
      * Configure the source, load configuration properties and establish connection with database
      */
     @Override
     public void configure(Context context) {
-    	
-    	LOG.getName();
-        	
-    	LOG.info("Reading and processing configuration values for source " + getName());
-		
-    	/* Initialize configuration parameters */
-    	sqlSourceHelper = new SQLSourceHelper(context, this.getName());
-        
-    	/* Initialize metric counters */
-		sqlSourceCounter = new SqlSourceCounter("SOURCESQL." + this.getName());
-        
+
+        LOG.getName();
+
+        LOG.info("Reading and processing configuration values for source " + getName());
+
+        /* Initialize configuration parameters */
+        sqlSourceHelper = new SQLSourceHelper(context, this.getName());
+
+        /* Initialize metric counters */
+        sqlSourceCounter = new SqlSourceCounter("SOURCESQL." + this.getName());
+
         /* Establish connection with database */
         hibernateHelper = new HibernateHelper(sqlSourceHelper);
         hibernateHelper.establishSession();
-       
+
         /* Instantiate the CSV Writer */
 //        csvWriter = new CSVWriter(new ChannelWriter(),sqlSourceHelper.getDelimiterEntry().charAt(0));
         printWriter = new PrintWriter(new ChannelWriter());
     }
-    
+
     /**
      * Process a batch of events performing SQL Queries
      */
-	@Override
-	public Status process() throws EventDeliveryException {
-		
-		try {
-			sqlSourceCounter.startProcess();
+    @Override
+    public Status process() throws EventDeliveryException {
 
+        try {
+            sqlSourceCounter.startProcess();
+            LOG.info("start process!");
 //            List<List<Object>> result = hibernateHelper.executeQue
-            List<Map<String,Object>> result = hibernateHelper.executeQueryForJson();
-            if (!result.isEmpty())
-			{
-                sqlSourceHelper.writeAllRows(result,printWriter);
+            List<Map<String, Object>> result = hibernateHelper.executeQueryForJson();
+            LOG.info("query size = [{}]", result.size());
+            if (!result.isEmpty()) {
+                sqlSourceHelper.writeAllRows(result, printWriter);
                 printWriter.flush();
 //                csvWriter.writeAll(sqlSourceHelper.getAllRows(result),sqlSourceHelper.encloseByQuotes());
 //                csvWriter.flush();
-				sqlSourceCounter.incrementEventCount(result.size());
-				sqlSourceHelper.updateStatusFile();
-			}
-			
-			sqlSourceCounter.endProcess(result.size());
-			
-			if (result.size() < sqlSourceHelper.getMaxRows()){
-				Thread.sleep(sqlSourceHelper.getRunQueryDelay());
-			}
-			return Status.READY;
-			
-		} catch (InterruptedException e) {
-			LOG.error("Error procesing row", e);
-			return Status.BACKOFF;
+                sqlSourceCounter.incrementEventCount(result.size());
+                sqlSourceHelper.updateStatusFile();
+            }
+
+            sqlSourceCounter.endProcess(result.size());
+
+            if (result.size() < sqlSourceHelper.getMaxRows()) {
+                Thread.sleep(sqlSourceHelper.getRunQueryDelay());
+            }
+            LOG.info("Finish process!");
+            return Status.READY;
+
+        } catch (InterruptedException e) {
+            LOG.error("Error procesing row", e);
+            return Status.BACKOFF;
         }
     }
 
@@ -122,38 +123,37 @@ public class SQLSource extends AbstractSource implements Configurable, PollableS
     }
 
     /**
-	 * Starts the source. Starts the metrics counter.
-	 */
-	@Override
+     * Starts the source. Starts the metrics counter.
+     */
+    @Override
     public void start() {
-        
-    	LOG.info("Starting sql source {} ...", getName());
+
+        LOG.info("Starting sql source {} ...", getName());
         sqlSourceCounter.start();
         super.start();
     }
 
-	/**
-	 * Stop the source. Close database connection and stop metrics counter.
-	 */
+    /**
+     * Stop the source. Close database connection and stop metrics counter.
+     */
     @Override
     public void stop() {
-        
+
         LOG.info("Stopping sql source {} ...", getName());
-        
-        try 
-        {
+
+        try {
             hibernateHelper.closeSession();
 //            csvWriter.close();
             printWriter.close();
         } catch (Exception e) {
-        	LOG.warn("Error CSVWriter object ", e);
+            LOG.warn("Error CSVWriter object ", e);
         } finally {
-        	this.sqlSourceCounter.stop();
-        	super.stop();
+            this.sqlSourceCounter.stop();
+            super.stop();
         }
     }
-    
-    private class ChannelWriter extends Writer{
+
+    private class ChannelWriter extends Writer {
         private List<Event> events = new ArrayList<>();
 
         @Override
@@ -162,13 +162,13 @@ public class SQLSource extends AbstractSource implements Configurable, PollableS
 
             String s = new String(cbuf);
             // The reason for this number [len] minus one is that the source string adds the line_end
-            event.setBody(s.substring(off, len-1).getBytes());
+            event.setBody(s.substring(off, len - 1).getBytes());
 //            LOG.info("event body:{}||",new String(event.getBody()));
 
             Map<String, String> headers;
             headers = new HashMap<String, String>();
-			headers.put("timestamp", String.valueOf(System.currentTimeMillis()));
-			event.setHeaders(headers);
+            headers.put("timestamp", String.valueOf(System.currentTimeMillis()));
+            event.setHeaders(headers);
             events.add(event);
             if (events.size() >= sqlSourceHelper.getBatchSize()) {
                 flush();
